@@ -31,20 +31,20 @@ public class Person {
     try(Connection con = DB.sql2o.open()) {
       String sqlFire = "SELECT * FROM monsters WHERE personId=:id AND type='fire';";
       List<FireMonster> fireMonsters = con.createQuery(sqlFire)
-        .addParameter("id", this.id)
-        .throwOnMappingFailure(false)
-        .executeAndFetch(FireMonster.class);
+      .addParameter("id", this.id)
+      .throwOnMappingFailure(false)
+      .executeAndFetch(FireMonster.class);
       allMonsters.addAll(fireMonsters);
 
       String sqlWater = "SELECT * FROM monsters WHERE personId=:id AND type='water';";
       List<WaterMonster> waterMonsters = con.createQuery(sqlWater)
-        .addParameter("id", this.id)
-        .throwOnMappingFailure(false)
-        .executeAndFetch(WaterMonster.class);
+      .addParameter("id", this.id)
+      .throwOnMappingFailure(false)
+      .executeAndFetch(WaterMonster.class);
       allMonsters.addAll(waterMonsters);
-      }
+    }
 
-      return allMonsters;
+    return allMonsters;
   }
 
   public void save() {
@@ -72,6 +72,49 @@ public class Person {
     String sql = "SELECT * FROM persons";
     try(Connection con = DB.sql2o.open()) {
       return con.createQuery(sql).executeAndFetch(Person.class);
+    }
+  }
+
+  public void leaveCommunity(Community community){
+    try(Connection con = DB.sql2o.open()){
+      String joinRemovalQuery = "DELETE FROM communities_persons WHERE community_id = :communityId AND person_id = :personId;";
+      con.createQuery(joinRemovalQuery)
+      .addParameter("communityId", community.getId())
+      .addParameter("personId", this.getId())
+      .executeUpdate();
+    }
+  }
+
+  public void delete() {
+    try(Connection con = DB.sql2o.open()) {
+      String sql = "DELETE FROM persons WHERE id = :id;";
+      con.createQuery(sql)
+      .addParameter("id", this.id)
+      .executeUpdate();
+      String joinDeleteQuery = "DELETE FROM communities_persons WHERE person_id = :personId";
+      con.createQuery(joinDeleteQuery)
+      .addParameter("personId", this.getId())
+      .executeUpdate();
+    }
+  }
+
+  public List<Community> getCommunities() {
+    try(Connection con = DB.sql2o.open()){
+      String joinQuery = "SELECT community_id FROM communities_persons WHERE person_id = :person_id";
+      List<Integer> communityIds = con.createQuery(joinQuery)
+      .addParameter("person_id", this.getId())
+      .executeAndFetch(Integer.class);
+
+      List<Community> communities = new ArrayList<Community>();
+
+      for (Integer communityId : communityIds) {
+        String communityQuery = "SELECT * FROM communities WHERE id = :communityId";
+        Community community = con.createQuery(communityQuery)
+        .addParameter("communityId", communityId)
+        .executeAndFetchFirst(Community.class);
+        communities.add(community);
+      }
+      return communities;
     }
   }
 
